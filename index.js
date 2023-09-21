@@ -8,14 +8,18 @@ const timeToRetry = 1;
 
 puppeteer.use(StealthPlugin());
 
-const navigateToURL = async (page) => {
-    console.log(chalk.blue('- Navigating to OTV verwalt website'));
+const navigateToURL = async ({ browser, page }) => {
+    try {
+        console.log(chalk.blue('- Navigating to OTV verwalt website'));
 
-    // Navigate the page to a URL
-    await page.goto('https://otv.verwalt-berlin.de/ams/TerminBuchen');
+        // Navigate the page to a URL
+        await page.goto('https://otv.verwalt-berlin.de/ams/TerminBuchen');
+    } catch (e) {
+        startNewSession({ browser, page });
+    }
 };
 
-const clickTerminBuchen = async (page, browser) => {
+const clickTerminBuchen = async ({ page, browser }) => {
     try {
         await page.evaluate(() => {
             [...document.querySelectorAll('.link .button')]
@@ -30,7 +34,7 @@ const clickTerminBuchen = async (page, browser) => {
     }
 };
 
-const step2 = async (page, browser) => {
+const step2 = async ({ page, browser }) => {
     try {
         console.log(chalk.blue('- Accepting terms and conditions'));
         const element = await page.waitForSelector('.CXCheckbox > label');
@@ -48,7 +52,7 @@ const step2 = async (page, browser) => {
     }
 };
 
-const step3 = async (page, browser) => {
+const step3 = async ({ page, browser }) => {
     try {
         console.log(chalk.blue('- Filling data'));
         await page.waitForNetworkIdle();
@@ -76,7 +80,7 @@ const step3 = async (page, browser) => {
         await page.waitForNavigation({ waitUntil: 'networkidle2' });
         await page.waitForNavigation({ waitUntil: 'networkidle2' });
     } catch (e) {
-        return startNewSession(browser, page);
+        return startNewSession({ browser, page });
     }
 };
 
@@ -85,7 +89,7 @@ const logPageUrl = async (page) => {
     console.log(chalk.blue(`Session URL: ${url}`));
 };
 
-const startNewSession = async (browser, page) => {
+const startNewSession = async ({ browser, page }) => {
     console.log(chalk.red('Error occurred or session ended.'));
     await page.close();
     await beginSession();
@@ -110,20 +114,19 @@ const beginSession = async () => {
 
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(120000);
-
     page.setViewport({ width: 1280, height: 720 });
 
     // navigate to URL
-    await navigateToURL(page);
+    await navigateToURL({ browser, page });
 
     // page 1
-    await clickTerminBuchen(page, browser);
+    await clickTerminBuchen({ page, browser });
 
     // Wait and click on first result 2
-    await step2(page, browser);
+    await step2({ page, browser });
 
     // page 3
-    await step3(page, browser);
+    await step3({ page, browser });
     let error = true;
 
     // errorMessage
@@ -135,7 +138,6 @@ const beginSession = async () => {
 
     while (error) {
         // check for error
-        // progress
 
         try {
             await page.waitForSelector('.errorMessage');
@@ -161,8 +163,20 @@ const beginSession = async () => {
             });
             await page.waitForNavigation({ waitUntil: 'networkidle2' });
             await page.waitForNavigation({ waitUntil: 'networkidle2' });
+
+            const foundTermin = await page.evaluate(() => {
+                [...document.querySelectorAll('*')].find(
+                    (element) => element.textContent === 'Auswahl termin'
+                );
+            });
+
+            console.log(foundTermin, 'foundTermin');
+
+            if (foundTermin) {
+                error = false;
+            }
         } catch (e) {
-            return await startNewSession(browser, page);
+            return await startNewSession({ browser, page });
         }
     }
 
