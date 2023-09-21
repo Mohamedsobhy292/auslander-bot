@@ -4,7 +4,16 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import sound from 'sound-play';
 import path from 'path';
 
+const timeToRetry = 1;
+
 puppeteer.use(StealthPlugin());
+
+const navigateToURL = async (page) => {
+    console.log(chalk.blue('- Navigating to OTV verwalt website'));
+
+    // Navigate the page to a URL
+    await page.goto('https://otv.verwalt-berlin.de/ams/TerminBuchen');
+};
 
 const clickTerminBuchen = async (page, browser) => {
     try {
@@ -41,7 +50,7 @@ const step2 = async (page, browser) => {
 
 const step3 = async (page, browser) => {
     try {
-        console.log(chalk.blue('- filling data'));
+        console.log(chalk.blue('- Filling data'));
         await page.waitForNetworkIdle();
         page.select('select#xi-sel-400', '287'); // Agypten
         page.select('select#xi-sel-422', '2'); // zwei personen
@@ -73,20 +82,30 @@ const step3 = async (page, browser) => {
 
 const logPageUrl = async (page) => {
     const url = await page.url();
-    console.log(chalk.blue(`Session url: ${url}`));
+    console.log(chalk.blue(`Session URL: ${url}`));
 };
 
 const startNewSession = async (browser, page) => {
-    console.log(chalk.red('error happened or session ended.'));
+    console.log(chalk.red('Error occurred or session ended.'));
     await page.close();
     await beginSession();
+};
+
+const getCurrentDate = () => {
+    return chalk.blue.bold(new Date().toLocaleTimeString());
+};
+
+const logTimeRemaining = async (page) => {
+    const timeLeft = await page.waitForSelector('#progressBar .bar');
+    const value = await timeLeft.evaluate((el) => el.textContent);
+    console.log(chalk.blue(`time left in session: ${value}`));
 };
 
 const browser = await puppeteer.launch({ headless: false });
 
 const beginSession = async () => {
-    console.log('--------------------------');
-    console.log(chalk.blue('starting new session'));
+    console.log('--------------------------------------------------------------------------------');
+    console.log(chalk.blue(`starting new session ${getCurrentDate()}`));
     // Launch the browser and open a new blank page
 
     const page = await browser.newPage();
@@ -94,10 +113,8 @@ const beginSession = async () => {
 
     page.setViewport({ width: 1280, height: 720 });
 
-    console.log(chalk.blue('- Navigating to OTV verwalt website'));
-
-    // Navigate the page to a URL
-    await page.goto('https://otv.verwalt-berlin.de/ams/TerminBuchen');
+    // navigate to URL
+    await navigateToURL(page);
 
     // page 1
     await clickTerminBuchen(page, browser);
@@ -109,40 +126,49 @@ const beginSession = async () => {
     await step3(page, browser);
     let error = true;
 
-    // error is errorMessage
-    const errorMessage = await page.$('.errorMessage');
-    console.log(errorMessage, 'errorMessage');
-
-    if (!errorMessage) {
+    // errorMessage
+    try {
+        await page.waitForSelector('.errorMessage');
+    } catch (e) {
         error = false;
     }
 
     while (error) {
-        error = false;
-        const errorMessage = await page.$('.errorMessage');
-        console.log(errorMessage, 'errorMessage');
+        // check for error
+        // progress
 
-        if (errorMessage) {
-            try {
-                error = true;
-                console.log(chalk.red('No appointment found retrying in 3 mins ...'));
-                await logPageUrl(page);
+        try {
+            await page.waitForSelector('.errorMessage');
+            console.log(
+                chalk.red(
+                    `No appointment found retrying in ${timeToRetry} mins... ${getCurrentDate()}`
+                )
+            );
+            await logTimeRemaining(page);
+            await logPageUrl(page);
+            await page.waitForTimeout(60000 * timeToRetry);
+        } catch (e) {
+            error = false;
+        }
 
-                await page.waitForTimeout(60000 * 3);
-                await page.evaluate(() => {
-                    [...document.querySelectorAll('button')]
-                        .find((element) => element.textContent === 'Weiter')
-                        .click();
-                });
-            } catch (e) {
-                return await startNewSession(browser, page);
-            }
+        try {
+            error = true;
+
+            await page.evaluate(() => {
+                [...document.querySelectorAll('button')]
+                    .find((element) => element.textContent === 'Weiter')
+                    .click();
+            });
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
+        } catch (e) {
+            return await startNewSession(browser, page);
         }
     }
 
     const filePath = path.join('tada.mp3');
     sound.play(filePath);
-    console.log(chalk.white.bgGreen.bold('appointment found'));
+    console.log(chalk.white.bgGreen.bold('Appointment found'));
     await logPageUrl(page);
 
     // await browser.close();
