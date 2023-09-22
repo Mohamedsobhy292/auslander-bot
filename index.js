@@ -30,7 +30,7 @@ const clickTerminBuchen = async ({ page, browser }) => {
         await page.waitForNavigation({ waitUntil: 'networkidle2' });
         await page.waitForNavigation({ waitUntil: 'networkidle2' });
     } catch (e) {
-        startNewSession(browser, page);
+        startNewSession({ browser, page });
     }
 };
 
@@ -48,7 +48,7 @@ const step2 = async ({ page, browser }) => {
         await page.waitForNavigation({ waitUntil: 'networkidle2' });
         await page.waitForNavigation({ waitUntil: 'networkidle2' });
     } catch (e) {
-        return startNewSession(browser, page);
+        return startNewSession({ browser, page });
     }
 };
 
@@ -91,7 +91,7 @@ const logPageUrl = async (page) => {
 
 const startNewSession = async ({ browser, page }) => {
     console.log(chalk.red('Error occurred or session ended.'));
-    await page.close();
+    await browser.close();
     await beginSession();
 };
 
@@ -105,9 +105,9 @@ const logTimeRemaining = async (page) => {
     console.log(chalk.blue(`time left in session: ${value}`));
 };
 
-const browser = await puppeteer.launch({ headless: false });
-
 const beginSession = async () => {
+    const browser = await puppeteer.launch({ headless: false });
+
     console.log('--------------------------------------------------------------------------------');
     console.log(chalk.blue(`starting new session ${getCurrentDate()}`));
     // Launch the browser and open a new blank page
