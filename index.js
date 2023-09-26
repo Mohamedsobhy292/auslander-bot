@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import sound from 'sound-play';
 import path from 'path';
+import { services } from './constants.js';
 
 const timeToRetry = 1;
 
@@ -46,7 +47,7 @@ const step2 = async ({ page, browser }) => {
                 .click();
         });
         await page.waitForNavigation({ waitUntil: 'networkidle2' });
-        await page.waitForNavigation({ waitUntil: 'networkidle2' });
+        await page.waitForNavigation({ waitUntil: 'networkidle0' });
     } catch (e) {
         return startNewSession({ browser, page });
     }
@@ -57,15 +58,17 @@ const step3 = async ({ page, browser }) => {
         console.log(chalk.blue('- Filling data'));
         await page.waitForNetworkIdle();
         page.select('select#xi-sel-400', '287'); // Agypten
-        page.select('select#xi-sel-422', '2'); // zwei personen
+        page.select('select#xi-sel-422', '1'); // 1 personen
         page.select('select#xi-sel-427', '1'); // Ja
         page.select('select#xi-sel-428', '287-0'); //  Agypten
 
-        const title = await page.waitForSelector('.kachel-287-0-2'); // Aufenthaltstitel - verlängern
+        const title = await page.waitForSelector(services.apply); // Aufenthaltstitel
         title.click();
-        const reason = await page.waitForSelector('.accordion-287-0-2-4'); // Familliare Grunde
+        // const reason = await page.waitForSelector('.accordion-287-0-2-4'); // Familliare Grunde
+        const reason = await page.waitForSelector('.accordion-287-0-1-1'); // Employment
         reason.click();
-        const choice = await page.waitForSelector('#SERVICEWAHL_DE287-0-2-4-327471'); // first choice
+        // const choice = await page.waitForSelector('#SERVICEWAHL_DE287-0-2-4-327471'); // first choice
+        const choice = await page.waitForSelector('#SERVICEWAHL_DE287-0-1-1-324659'); // first choice
         choice.click();
 
         await page.waitForTimeout(3000);
@@ -77,7 +80,7 @@ const step3 = async ({ page, browser }) => {
                 .click();
         });
 
-        await page.waitForNavigation({ waitUntil: 'networkidle2' });
+        await page.waitForNavigation({ waitUntil: 'networkidle0' });
         await page.waitForNavigation({ waitUntil: 'networkidle2' });
     } catch (e) {
         return startNewSession({ browser, page });
@@ -108,7 +111,7 @@ const logTimeRemaining = async (page) => {
 const beginSession = async () => {
     const browser = await puppeteer.launch({ headless: false });
 
-    console.log('--------------------------------------------------------------------------------');
+    console.log('\n-------------------------------------------------------------------------- \n');
     console.log(chalk.blue(`starting new session ${getCurrentDate()}`));
     // Launch the browser and open a new blank page
 
@@ -170,9 +173,16 @@ const beginSession = async () => {
                 );
             });
 
-            console.log(foundTermin, 'foundTermin');
+            const foundTermin2 = await page.evaluate(() => {
+                [...document.querySelectorAll('*')].find(
+                    (element) => element.textContent === 'Auswahl Uhrzeit'
+                );
+            });
 
-            if (foundTermin) {
+            console.log(foundTermin, 'foundTermin');
+            console.log(foundTermin2, 'foundTermin2');
+
+            if (foundTermin || foundTermin2) {
                 error = false;
             }
         } catch (e) {
@@ -181,6 +191,9 @@ const beginSession = async () => {
     }
 
     const filePath = path.join('tada.mp3');
+    sound.play(filePath);
+    sound.play(filePath);
+    sound.play(filePath);
     sound.play(filePath);
     console.log(chalk.white.bgGreen.bold('Appointment found'));
     await logPageUrl(page);
