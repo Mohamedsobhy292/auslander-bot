@@ -168,21 +168,12 @@ const beginSession = async () => {
             await page.waitForNavigation({ waitUntil: 'networkidle2' });
 
             const foundTermin = await page.evaluate(() => {
-                [...document.querySelectorAll('*')].find(
-                    (element) => element.textContent === 'Auswahl termin'
+                [...document.querySelectorAll('*')].find((element) =>
+                    element.textContent.toLowerCase().includes('auswahl')
                 );
             });
 
-            const foundTermin2 = await page.evaluate(() => {
-                [...document.querySelectorAll('*')].find(
-                    (element) => element.textContent === 'Auswahl Uhrzeit'
-                );
-            });
-
-            console.log(foundTermin, 'foundTermin');
-            console.log(foundTermin2, 'foundTermin2');
-
-            if (foundTermin || foundTermin2) {
+            if (foundTermin) {
                 error = false;
             }
         } catch (e) {
