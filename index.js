@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import puppeteer from 'puppeteer-extra';
 import chalk from 'chalk';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
@@ -139,6 +141,24 @@ const beginSession = async () => {
         error = false;
     }
 
+    // const foundTermin = await page.evaluate(() => {
+    //     return [...document.querySelectorAll('*')].find((element) => {
+    //         return (
+    //             element.textContent.toLowerCase().includes('auswahl') ||
+    //             element.textContent.toLowerCase().includes('angaben')
+    //         );
+    //     });
+    // });
+
+    const [chooseTermin] = await page.$x("//legend[contains(., 'Auswahl Termin')]");
+    // const [chooseTermin2] = await page.$x("//legend[contains(., 'ange')]");
+
+    console.log(chooseTermin, 'chooseTermin===');
+
+    if (chooseTermin) {
+        error = false;
+    }
+
     while (error) {
         // check for error
 
@@ -167,13 +187,9 @@ const beginSession = async () => {
             await page.waitForNavigation({ waitUntil: 'networkidle2' });
             await page.waitForNavigation({ waitUntil: 'networkidle2' });
 
-            const foundTermin = await page.evaluate(() => {
-                [...document.querySelectorAll('*')].find((element) =>
-                    element.textContent.toLowerCase().includes('auswahl')
-                );
-            });
+            const [chooseTermin] = await page.$x("//legend[contains(., 'Auswahl Termin')]");
 
-            if (foundTermin) {
+            if (chooseTermin) {
                 error = false;
             }
         } catch (e) {
