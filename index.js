@@ -69,8 +69,8 @@ const step3 = async ({ page, browser }) => {
         // const reason = await page.waitForSelector('.accordion-287-0-2-4'); // Familliare Grunde
         const reason = await page.waitForSelector('.accordion-287-0-1-1'); // Employment
         reason.click();
-        // const choice = await page.waitForSelector('#SERVICEWAHL_DE287-0-2-4-327471'); // first choice
-        const choice = await page.waitForSelector('#SERVICEWAHL_DE287-0-1-1-324659'); // first choice
+
+        const choice = await page.waitForSelector('#SERVICEWAHL_DE287-0-1-1-329328'); // first choice
         choice.click();
 
         await page.waitForTimeout(3000);
@@ -141,21 +141,9 @@ const beginSession = async () => {
         error = false;
     }
 
-    // const foundTermin = await page.evaluate(() => {
-    //     return [...document.querySelectorAll('*')].find((element) => {
-    //         return (
-    //             element.textContent.toLowerCase().includes('auswahl') ||
-    //             element.textContent.toLowerCase().includes('angaben')
-    //         );
-    //     });
-    // });
+    const [chooseTerminText] = await page.$x("//legend[contains(., 'Auswahl Termin')]");
 
-    const [chooseTermin] = await page.$x("//legend[contains(., 'Auswahl Termin')]");
-    // const [chooseTermin2] = await page.$x("//legend[contains(., 'ange')]");
-
-    console.log(chooseTermin, 'chooseTermin===');
-
-    if (chooseTermin) {
+    if (chooseTerminText) {
         error = false;
     }
 
@@ -187,9 +175,9 @@ const beginSession = async () => {
             await page.waitForNavigation({ waitUntil: 'networkidle2' });
             await page.waitForNavigation({ waitUntil: 'networkidle2' });
 
-            const [chooseTermin] = await page.$x("//legend[contains(., 'Auswahl Termin')]");
+            const [chooseTerminText] = await page.$x("//legend[contains(., 'Auswahl Termin')]");
 
-            if (chooseTermin) {
+            if (chooseTerminText) {
                 error = false;
             }
         } catch (e) {
@@ -199,9 +187,7 @@ const beginSession = async () => {
 
     const filePath = path.join('tada.mp3');
     sound.play(filePath);
-    sound.play(filePath);
-    sound.play(filePath);
-    sound.play(filePath);
+
     console.log(chalk.white.bgGreen.bold('Appointment found'));
     await logPageUrl(page);
 
